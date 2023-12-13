@@ -64,6 +64,9 @@ const config = [
     ['deletePlane', '删除当前方案', 'delete current plan'],
     ['applyPlane', '应用当前方案', 'apply current plan'],
     ['applyFail', '应用失败', 'apply fail'],
+    ['deletePlaneConfirm', '确定删除当前方案？', 'confirm delete current plan?'],
+    ['updateFail', '更新失败', 'update fail'],
+    ['saveSuccess', '保存成功', 'save success'],
 ]
 
 

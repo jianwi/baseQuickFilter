@@ -163,7 +163,13 @@ function Filter({   currentView,
         if (item.conditionId){
             item.operator = value
             if (item.value || item.operator === FilterOperator.IsEmpty || item.operator === FilterOperator.IsNotEmpty){
-                await currentView.updateFilterCondition(item)
+                try {
+                    await currentView.updateFilterCondition(item)
+                }catch (e) {
+                    Toast.error({
+                        content: t("updateFail")
+                    })
+                }
                 getFilterInfo()
             }else {
                 setCurrentConditions([...currentConditions])
@@ -220,6 +226,9 @@ function Filter({   currentView,
                         }
                     })
                     console.log("单选的值", c.value)
+                    if (typeof c.value === "string"){
+                        c.value = [c.value]
+                    }
                     return (<Select multiple={true} filter={true} optionList={options} value={c.value} onChange={(value)=>{
                         updateConditionValue(c, value)
                     }}></Select>)
