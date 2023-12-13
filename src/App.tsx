@@ -21,9 +21,9 @@ function Planes({currentPlanInfo, setCurrentPlanInfo, currentView, savedPlans, u
             onOk: async ()=>{
                 let {tableId} = await bitable.base.getSelection()
                 let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
-                plans = JSON.parse(plans)
-                plans = plans.filter((p)=>p.name !== record.name)
-                localStorage.setItem(`plans_${tableId}`, JSON.stringify(plans))
+                let plansArray = JSON.parse(plans)
+                plansArray = plansArray.filter((p)=>p.name !== record.name)
+                localStorage.setItem(`plans_${tableId}`, JSON.stringify(plansArray))
                 updateSavedPlans()
             }
         })
@@ -232,7 +232,8 @@ function Filter({   currentView,
                 }
                 if (c.fieldType === FieldType.DateTime){
                     return (<DatePicker value={c.value} onChange={(value)=>{
-                        updateConditionValue(c, new Date(value).getTime())
+                        if (!value) return
+                        updateConditionValue(c, new Date(value+"").getTime())
                     }}></DatePicker>)
                 }
 
@@ -257,13 +258,13 @@ function Filter({   currentView,
     async function saveCurrentPlane() {
         let {tableId} = await bitable.base.getSelection()
         let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
-        plans = JSON.parse(plans)
-        plans.push({
+        let plansArray = JSON.parse(plans)
+        plansArray.push({
             name: planeName,
             conjunction: currentConjunction,
             conditions: currentConditions
         })
-        localStorage.setItem(`plans_${tableId}`, JSON.stringify(plans))
+        localStorage.setItem(`plans_${tableId}`, JSON.stringify(plansArray))
         setShowSavePlaneModal(false)
         updateSavedPlans()
         Toast.success({
@@ -327,8 +328,8 @@ export default function App() {
         // 仅查找当前表格的筛选条件
         let {tableId} = await bitable.base.getSelection()
         let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
-        plans = JSON.parse(plans)
-        setSavedPlanes(plans)
+        let plansArray = JSON.parse(plans)
+        setSavedPlanes(plansArray)
     }
 
     async function getFilterInfo() {
