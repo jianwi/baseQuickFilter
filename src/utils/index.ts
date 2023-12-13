@@ -1,4 +1,4 @@
-import {FieldType, FilterOperator} from "_@lark-base-open_js-sdk@0.3.5@@lark-base-open/js-sdk";
+import {FieldType, FilterOperator} from "@lark-base-open/js-sdk";
 
 
 export function getFilterOperatorMap(t) {
