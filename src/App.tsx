@@ -4,26 +4,84 @@ import {bitable, IGridView, FilterOperator, FieldType, IFilterBaseCondition, IFi
     IFilterDateTimeCondition,
     IFilterDateTimeValue,
 } from "@lark-base-open/js-sdk";
-import {Button, Card, Col, DatePicker, Input, Modal, Row, Select, Space, Table} from "@douyinfe/semi-ui";
-import {IconAlarm, IconCrossStroked, IconDelete, IconMinus} from "@douyinfe/semi-icons";
+import {Button, Card, Col, DatePicker, Input, Modal, Row, Select, Space, Table, Toast} from "@douyinfe/semi-ui";
+import {IconAlarm, IconConnectionPoint1, IconCrossStroked, IconDelete, IconMinus, IconSend} from "@douyinfe/semi-icons";
 import {useTranslation} from "react-i18next";
 import {getFilterOperatorMap} from "./utils";
 
 
-function Planes() {
-    const [planes, setPlanes] = useState<any[]>([])
+function Planes({currentPlanInfo, setCurrentPlanInfo, currentView, savedPlans, updateSavedPlans}) {
     const {t} = useTranslation()
-    useEffect(() => {
-        let plans = localStorage.getItem("plans") || "[]"
-        plans = JSON.parse(plans)
-        setPlanes(plans)
-    }, []);
+
+
+    function deletePlane(record) {
+        Modal.confirm({
+            title: t('deletePlane'),
+            content: t('deletePlaneConfirm'),
+            onOk: async ()=>{
+                let {tableId} = await bitable.base.getSelection()
+                let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
+                plans = JSON.parse(plans)
+                plans = plans.filter((p)=>p.name !== record.name)
+                localStorage.setItem(`plans_${tableId}`, JSON.stringify(plans))
+                updateSavedPlans()
+            }
+        })
+
+    }
+
+    let columns = [
+        {
+            title: 'name',
+            dataIndex: 'name'
+        },
+        {
+            title: 'action',
+            dataIndex: 'action',
+            width: 100,
+            render: (value, record, index) => {
+                return (<Space>
+                    <Button icon={<IconSend />} size='small' onClick={async ()=>{
+                        console.log("使用此方案", record)
+                        // 清空条件
+                        let filterInfo = await currentView.getFilterInfo()
+                        if (filterInfo){
+                            for (let c of filterInfo.conditions){
+                                await currentView.deleteFilterCondition(c.conditionId)
+                            }
+                        }
+
+                        try {
+                            for (let c of record.conditions){
+                                await currentView.addFilterCondition(c)
+                            }
+                        }catch (e) {
+                            Toast.error({
+                                content: t("applyFail")
+                            })
+                        }
+
+                        currentView.setFilterConjunction(record.conjunction)
+                        setCurrentPlanInfo(record)
+
+                    }}>{t('applyPlane')}</Button>
+
+                    <Button type={"danger"} icon={<IconDelete />} size='small' onClick={ ()=>{
+                        deletePlane(record)
+                    }} >{t('deletePlane')}</Button>
+
+
+                    </Space>)
+
+            }
+        }]
+
 
     return (<Card title={'已保存筛选方案'}>
-        <Table columns={[]}  bordered={true}
+        <Table columns={columns}  bordered={true}
                showHeader={false}
                pagination={false}
-               dataSource={[]}></Table>
+               dataSource={savedPlans}></Table>
     </Card>)
 
 }
@@ -32,43 +90,25 @@ function Planes() {
  * Filter 组件，用于筛选，
  * @constructor
  */
-function Filter({ currentView, fieldList }) {
-
-    const [currentConjunction, setCurrentConjunction] = useState<any>("and")
-    const [currentConditions, setCurrentConditions] = useState<any[]>([])
-    const [fieldMap, setFieldMap] = useState<any>({})
-
+function Filter({   currentView,
+                    fieldList,
+                    currentConjunction,
+                    setCurrentConjunction,
+                    currentConditions,
+                    setCurrentConditions,
+                    updateSavedPlans,
+                    getFilterInfo,
+                    currentPlanInfo,
+                    setCurrentPlanInfo,
+                    fieldMap }) {
     const {t} = useTranslation()
     const {filterOperatorMap, operatorMap, conjunction} = getFilterOperatorMap(t)
 
     useEffect(() => {
-        let map = {}
-        fieldList.forEach((f) => {
-            map[f.value] = f
-        })
-        setFieldMap(map)
-    }, [fieldList]);
-
-
-    async function getFilterInfo() {
-        let filterInfo = await currentView.getFilterInfo()
-        console.log(filterInfo)
-        if (filterInfo){
-            setCurrentConjunction(filterInfo.conjunction)
-            setCurrentConditions(filterInfo.conditions)
+        if (currentPlanInfo){
+            getFilterInfo()
         }
-    }
-    useEffect(() => {
-        getFilterInfo()
-
-    }, [currentView]);
-
-    let condition = {
-        conjunction: "and",
-        conditions: [],
-    }
-
-    const scroll = useMemo(() => ({  x: "100%" }), []);
+    }, [currentPlanInfo]);
 
     function updateConjunction(value) {
         setCurrentConjunction(value)
@@ -76,7 +116,6 @@ function Filter({ currentView, fieldList }) {
     }
 
     function updateConditionValue(item, value) {
-        console.log(item, value)
         if (item.conditionId){
             item.value = value
             currentView.updateFilterCondition(item)
@@ -84,7 +123,6 @@ function Filter({ currentView, fieldList }) {
         }
     }
     async function changeFilterField(item, value) {
-        console.log(item, value)
         // 改字段不生效，只变本地
         if (item.conditionId){
             let filed = fieldMap[value]
@@ -198,7 +236,6 @@ function Filter({ currentView, fieldList }) {
                     }}></DatePicker>)
                 }
 
-
                 return (<Input  value={c.value} onChange={(value)=>{
                     updateConditionValue(c, value)
                 }}></Input>)
@@ -217,18 +254,21 @@ function Filter({ currentView, fieldList }) {
 
     const [planeName, setPlaneName] = useState("")
 
-    function saveCurrentPlane() {
-        console.log(planeName)
-        let plans = localStorage.getItem("plans") || "[]"
+    async function saveCurrentPlane() {
+        let {tableId} = await bitable.base.getSelection()
+        let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
         plans = JSON.parse(plans)
         plans.push({
             name: planeName,
             conjunction: currentConjunction,
             conditions: currentConditions
         })
-        localStorage.setItem("plans", JSON.stringify(plans))
+        localStorage.setItem(`plans_${tableId}`, JSON.stringify(plans))
         setShowSavePlaneModal(false)
-
+        updateSavedPlans()
+        Toast.success({
+            content: t("saveSuccess")
+        })
     }
 
     const [showSavePlaneModal, setShowSavePlaneModal] = useState(false)
@@ -242,15 +282,20 @@ function Filter({ currentView, fieldList }) {
                     {t("inputPlanName")}: <Input onChange={(v)=>setPlaneName(v)}></Input>
                 </div>
             </Modal>
-            <Card title="快速筛选" footer={<Button onClick={() => {
+            <Card title={<Button onClick={() => {
                 setShowSavePlaneModal(true)
-            }}>{t("savePlane")}</Button>}>
+            }}>{t("savePlane")}</Button>} >
                 <Space vertical={true} align={'start'}>
-                    <Select optionList={conjunction} value={currentConjunction}
-                            onChange={(value) => {
-                                updateConjunction(value)
-                            }}
-                    />
+                    <div style={{display:"flex",justifyContent:"space-between",width:"100%",alignItems:"center"}}>
+                        <h3>{t('设置筛选条件')}</h3>
+                        <Select
+                            optionList={conjunction} value={currentConjunction}
+                            style={{width: 200}}
+                                onChange={(value) => {
+                                    updateConjunction(value)
+                                }}
+                        />
+                    </div>
                     <Table
                         bordered={true}
                         showHeader={false}
@@ -272,6 +317,28 @@ export default function App() {
     const [currentView, setCurrentView] = useState<IGridView>(null);
     const [fieldList, setFieldList] = useState<any[]>([])
 
+    const [currentConjunction, setCurrentConjunction] = useState<any>("and")
+    const [currentConditions, setCurrentConditions] = useState<any[]>([])
+    const [fieldMap, setFieldMap] = useState<any>({})
+    const [savedPlanes, setSavedPlanes] = useState<any[]>([])
+    const [currentPlanInfo, setCurrentPlanInfo] = useState<any>(null)
+
+    async function updateSavedPlans() {
+        // 仅查找当前表格的筛选条件
+        let {tableId} = await bitable.base.getSelection()
+        let plans = localStorage.getItem(`plans_${tableId}`) || "[]"
+        plans = JSON.parse(plans)
+        setSavedPlanes(plans)
+    }
+
+    async function getFilterInfo() {
+        let filterInfo = await currentView.getFilterInfo()
+        if (filterInfo){
+            setCurrentConditions(filterInfo.conditions)
+            setCurrentConjunction(filterInfo.conjunction)
+        }
+    }
+
 
     useEffect(() => {
         // 获取当前视图id 和 已保存的视图
@@ -286,15 +353,20 @@ export default function App() {
             let fields = await table.getFieldMetaList()
             if (fields) {
                 console.log(fields)
+                let map = {}
                 fields = fields.map((f: any) => {
                     f.label = f.name
                     f.value = f.id
+                    map[f.value] = f
                     return f
                 })
+                setFieldMap(map)
             }
             setFieldList(fields)
         }
         getInfo()
+        getFilterInfo()
+        updateSavedPlans()
 
         bitable.base.onSelectionChange(async (selection) => {
             getInfo()
@@ -302,8 +374,26 @@ export default function App() {
     }, []);
 
     return (<>
-        <Filter currentView={currentView} fieldList={fieldList}></Filter>
-        <Planes></Planes>
+        <Filter currentConditions={currentConditions}
+                setCurrentConditions={setCurrentConditions}
+                currentConjunction={currentConjunction}
+                setCurrentConjunction={setCurrentConjunction}
+                currentView={currentView}
+                fieldList={fieldList}
+                fieldMap={fieldMap}
+                getFilterInfo={getFilterInfo}
+                updateSavedPlans={updateSavedPlans}
+                currentPlanInfo={currentPlanInfo}
+                setCurrentPlanInfo={setCurrentPlanInfo}
+        ></Filter>
+        <div style={{marginTop:"30px"}}></div>
+        <Planes
+            currentPlanInfo={currentPlanInfo}
+            setCurrentPlanInfo={setCurrentPlanInfo}
+            currentView={currentView}
+            savedPlans={savedPlanes}
+            updateSavedPlans={updateSavedPlans}
+        ></Planes>
     </>)
 
 }

@@ -48,7 +48,7 @@
 const config = [
     ['and', '符合以下所有条件', 'must match all of the following conditions'],
     ['or', '符合以下任一条件', 'just match any of the following conditions'],
-    ['savePlane', '保存方案', 'save'],
+    ['savePlane', '保存当前方案', 'save current plan'],
     ['inputPlanName', '请输入方案名称', 'please input plan name'],
     ['addCondition', '添加条件', 'add condition'],
     ['FilterOperator.Contains', '包含', 'Contains'],
@@ -60,7 +60,10 @@ const config = [
     ['FilterOperator.IsGreater', '大于', 'IsGreater'],
     ['FilterOperator.IsGreaterEqual', '大于等于', 'IsGreaterEqual'],
     ['FilterOperator.IsLess', '小于', 'IsLess'],
-    ['FilterOperator.IsLessEqual', '小于等于', 'IsLessEqual']
+    ['FilterOperator.IsLessEqual', '小于等于', 'IsLessEqual'],
+    ['deletePlane', '删除当前方案', 'delete current plan'],
+    ['applyPlane', '应用当前方案', 'apply current plan'],
+    ['applyFail', '应用失败', 'apply fail'],
 ]
 
 
