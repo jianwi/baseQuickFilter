@@ -67,6 +67,8 @@ const config = [
     ['deletePlaneConfirm', '确定删除当前方案？', 'confirm delete current plan?'],
     ['updateFail', '更新失败', 'update fail'],
     ['saveSuccess', '保存成功', 'save success'],
+    ['setFilterCondition','设置筛选条件','set filter condition'],
+    ['searchField','搜索字段','search field'],
 ]
 
 

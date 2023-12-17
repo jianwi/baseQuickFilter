@@ -115,26 +115,37 @@ function Filter({   currentView,
         currentView.setFilterConjunction(value)
     }
 
-    function updateConditionValue(item, value) {
-        if (item.conditionId){
+    async function updateConditionValue(item, value) {
+        if (item.conditionId && !item.conditionId.startsWith("fakeId_")){
             item.value = value
             currentView.updateFilterCondition(item)
             setCurrentConditions([...currentConditions])
+            return
+        }else {
+            // 本地更新
+            item.value = value
+            await currentView.addFilterCondition(item)
+            await getFilterInfo()
         }
     }
     async function changeFilterField(item, value) {
         // 改字段不生效，只变本地
-        if (item.conditionId){
-            let filed = fieldMap[value]
-            item.fieldId = value
-            item.fieldType = filed.type
-            delete item.value
-            delete item.operator
-        }
+        let filed = fieldMap[value]
+        item.fieldId = value
+        item.fieldType = filed.type
+        delete item.value
+        delete item.operator
         setCurrentConditions([...currentConditions])
     }
     async function delCondition(item) {
         console.log(item)
+        if (!item.conditionId){
+            return
+        }
+        if (item.conditionId.startsWith("fakeId_")){
+            setCurrentConditions([...currentConditions.filter((c)=>c.conditionId !== item.conditionId)])
+            return
+        }
         let r = await currentView.deleteFilterCondition(item.conditionId)
         if (r){
             setCurrentConditions([...currentConditions.filter((c)=>c.conditionId !== item.conditionId)])
@@ -149,18 +160,26 @@ function Filter({   currentView,
             defaultOperator = FilterOperator.Contains
         }
         console.log(defaultField)
-        let r = await currentView.addFilterCondition({
-            fieldId: defaultField.value,
+        let condition = {
+            conditionId: "fakeId_"+ Math.floor(Math.random()*1000000),
+            fieldId: "",
             operator: defaultOperator,
             value: ""
-        })
-        if (r){
-            await getFilterInfo()
         }
+        setCurrentConditions([...currentConditions, condition])
+
+        // let r = await currentView.addFilterCondition({
+        //     fieldId: defaultField.value,
+        //     operator: defaultOperator,
+        //     value: ""
+        // })
+        // if (r){
+        //     await getFilterInfo()
+        // }
     }
 
     async function changeOperator(item, value) {
-        if (item.conditionId){
+        if (item.conditionId && !item.conditionId.startsWith("fakeId_")){
             item.operator = value
             if (item.value || item.operator === FilterOperator.IsEmpty || item.operator === FilterOperator.IsNotEmpty){
                 try {
@@ -175,6 +194,16 @@ function Filter({   currentView,
                 setCurrentConditions([...currentConditions])
             }
 
+        }else {
+            if (value === FilterOperator.IsEmpty || value === FilterOperator.IsNotEmpty){
+                item.value = value
+                item.operator = value
+                await currentView.addFilterCondition(item)
+                await getFilterInfo()
+                return
+            }
+            item.operator = value
+            setCurrentConditions([...currentConditions])
         }
     }
 
@@ -187,7 +216,9 @@ function Filter({   currentView,
             width: 200,
             render: (fieldId, c, index) => {
                 return (
-                        <Select filter optionList={fieldList} value={c.fieldId} onChange={(value)=>{
+                        <Select filter
+                                placeholder={t("searchField")}
+                                optionList={fieldList} value={c.fieldId} onChange={(value)=>{
                             changeFilterField(c, value)
                         }}></Select>
                 );
@@ -298,7 +329,7 @@ function Filter({   currentView,
             }}>{t("savePlane")}</Button>} >
                 <Space vertical={true} align={'start'}>
                     <div style={{display:"flex",justifyContent:"space-between",width:"100%",alignItems:"center"}}>
-                        <h3>{t('设置筛选条件')}</h3>
+                        <h3>{t('setFilterCondition')}</h3>
                         <Select
                             optionList={conjunction} value={currentConjunction}
                             style={{width: 200}}
