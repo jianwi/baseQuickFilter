@@ -184,6 +184,7 @@ function Filter({   currentView,
         {
             title: 'fieldId',
             dataIndex: 'fieldId',
+            width: 200,
             render: (fieldId, c, index) => {
                 return (
                         <Select filter optionList={fieldList} value={c.fieldId} onChange={(value)=>{
@@ -292,7 +293,7 @@ function Filter({   currentView,
                     {t("inputPlanName")}: <Input onChange={(v)=>setPlaneName(v)}></Input>
                 </div>
             </Modal>
-            <Card title={<Button onClick={() => {
+            <Card footer={<Button theme={true} onClick={() => {
                 setShowSavePlaneModal(true)
             }}>{t("savePlane")}</Button>} >
                 <Space vertical={true} align={'start'}>
